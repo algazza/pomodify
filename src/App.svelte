@@ -4,8 +4,8 @@
 	type Mode = 'focus' | 'break'
 	type VisualState = 'focus' | 'break' | 'paused'
 
-	let focusMinutes = 25
-	let breakMinutes = 5
+	let focusMinutes = 1
+	let breakMinutes = 1
 	let mode: Mode = 'focus'
 	let isRunning = false
 	let autoContinueAfterFocus = true
@@ -177,14 +177,33 @@
 			notificationMessage = ''
 		}, 5000)
 
+		void sendSystemNotification(notificationMessage, completedMode)
+	}
+
+	const sendSystemNotification = async (message: string, completedMode: Mode) => {
 		if (typeof window === 'undefined' || !('Notification' in window)) return
 
-		if (Notification.permission === 'granted') {
-			new Notification('Pomodify', {
-				body: notificationMessage,
-				icon: '/favicon.svg'
-			})
+		let permission = Notification.permission
+		if (permission === 'default') {
+			permission = await Notification.requestPermission()
 		}
+
+		if (permission !== 'granted') return
+
+		const notificationIcon = completedMode === 'focus' ? '🍅' : '☕'
+		const notificationColor = completedMode === 'focus' ? '#7f1d1d' : '#134e4a'
+		const iconSvg = encodeURIComponent(
+			`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${notificationColor}"/><text x="32" y="42" font-size="30" text-anchor="middle">${notificationIcon}</text></svg>`
+		)
+		const iconUrl = `data:image/svg+xml,${iconSvg}`
+
+		new Notification('Pomodify Timer', {
+			body: message,
+			icon: iconUrl,
+			tag: 'pomodify-session-complete',
+			renotify: true,
+			requireInteraction: true
+		})
 	}
 
 	const setRemainingFromMode = () => {
