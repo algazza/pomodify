@@ -1,19 +1,23 @@
+<svelte:options runes={true} />
+
 <script lang="ts">
 	import { onDestroy } from 'svelte'
 
 	type Mode = 'focus' | 'break'
 	type VisualState = 'focus' | 'break' | 'paused'
+	const initialFocusMinutes = 25
+	const initialBreakMinutes = 5
 
-	let focusMinutes = 1
-	let breakMinutes = 1
-	let mode: Mode = 'focus'
-	let isRunning = false
-	let autoContinueAfterFocus = true
-	let remainingSeconds = focusMinutes * 60
-	let intervalId: ReturnType<typeof setInterval> | null = null
-	let notificationMessage = ''
-	let notificationTimeout: ReturnType<typeof setTimeout> | null = null
-	let tickAudioContext: AudioContext | null = null
+	let focusMinutes = $state(initialFocusMinutes)
+	let breakMinutes = $state(initialBreakMinutes)
+	let mode = $state<Mode>('focus')
+	let isRunning = $state(false)
+	let autoContinueAfterFocus = $state(true)
+	let remainingSeconds = $state(initialFocusMinutes * 60)
+	let intervalId = $state<ReturnType<typeof setInterval> | null>(null)
+	let notificationMessage = $state('')
+	let notificationTimeout = $state<ReturnType<typeof setTimeout> | null>(null)
+	let tickAudioContext = $state<AudioContext | null>(null)
 
 	const formatTime = (seconds: number) => {
 		const minutes = Math.floor(seconds / 60)
@@ -22,12 +26,12 @@
 		return `${minutes.toString().padStart(2, '0')}:${remaining.toString().padStart(2, '0')}`
 	}
 
-	$: timerLabel = formatTime(remainingSeconds)
-	$: runningStatus = isRunning ? 'Running' : 'Stopped'
-	$: currentModeLabel = mode === 'focus' ? 'Focus' : 'Break'
-	$: currentModeDuration = (mode === 'focus' ? focusMinutes : breakMinutes) * 60
-	$: isPaused = !isRunning && remainingSeconds !== currentModeDuration
-	$: visualState = isRunning ? mode : isPaused ? 'paused' : mode
+	const timerLabel = $derived(formatTime(remainingSeconds))
+	const runningStatus = $derived(isRunning ? 'Running' : 'Stopped')
+	const currentModeLabel = $derived(mode === 'focus' ? 'Focus' : 'Break')
+	const currentModeDuration = $derived((mode === 'focus' ? focusMinutes : breakMinutes) * 60)
+	const isPaused = $derived(!isRunning && remainingSeconds !== currentModeDuration)
+	const visualState = $derived<VisualState>(isRunning ? mode : isPaused ? 'paused' : mode)
 
 	const visualConfig: Record<
 		VisualState,
@@ -106,9 +110,9 @@
 		}
 	}
 
-	$: activeVisual = visualConfig[visualState]
+	const activeVisual = $derived(visualConfig[visualState])
 
-	$: {
+	$effect(() => {
 		if (typeof document !== 'undefined') {
 			document.title = `${activeVisual.icon} ${timerLabel} • ${activeVisual.title}`
 			document.body.style.backgroundColor = activeVisual.themeColor
@@ -133,7 +137,7 @@
 			}
 			themeMeta.content = activeVisual.themeColor
 		}
-	}
+	})
 
 	const stopInterval = () => {
 		if (intervalId) {
@@ -387,7 +391,7 @@
 						max="60"
 						step="1"
 						value={focusMinutes}
-						on:input={handleFocusChange}
+						oninput={handleFocusChange}
 						disabled={isRunning}
 						class={activeVisual.rangeAccent}
 					/>
@@ -401,7 +405,7 @@
 						max="15"
 						step="1"
 						value={breakMinutes}
-						on:input={handleBreakChange}
+						oninput={handleBreakChange}
 						disabled={isRunning}
 						class={activeVisual.rangeAccent}
 					/>
@@ -412,7 +416,7 @@
 				<button
 					type="button"
 					class={`rounded-xl px-12 py-4 font-medium text-white transition text-xl ${activeVisual.buttonBg} ${activeVisual.buttonHover}`}
-					on:click={toggleTimer}
+					onclick={toggleTimer}
 				>
 					{isRunning ? 'Pause' : 'Start'}
 				</button>
@@ -420,7 +424,7 @@
 					<button
 						type="button"
 						class={`rounded-xl border px-12 py-4 text-xl font-medium transition ${activeVisual.secondaryButton} ${activeVisual.secondaryHover}`}
-						on:click={endTimer}
+						onclick={endTimer}
 					>
 						End timer
 					</button>
@@ -428,7 +432,7 @@
 				<button
 					type="button"
 					class={`rounded-xl border px-12 py-4 text-xl font-medium transition ${activeVisual.secondaryButton} ${activeVisual.secondaryHover}`}
-					on:click={resetTimer}
+					onclick={resetTimer}
 				>
 					Reset
 				</button>
@@ -443,7 +447,7 @@
 								? activeVisual.modeActive
 								: activeVisual.modeInactive
 						}`}
-						on:click={() => switchMode('focus')}
+						onclick={() => switchMode('focus')}
 					>
 						Focus mode
 					</button>
@@ -454,7 +458,7 @@
 								? activeVisual.modeActive
 								: activeVisual.modeInactive
 						}`}
-						on:click={() => switchMode('break')}
+						onclick={() => switchMode('break')}
 					>
 						Break mode
 					</button>
