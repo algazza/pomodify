@@ -12,7 +12,6 @@
 	let breakMinutes = $state(initialBreakMinutes)
 	let mode = $state<Mode>('focus')
 	let isRunning = $state(false)
-	let autoContinueAfterFocus = $state(true)
 	let remainingSeconds = $state(initialFocusMinutes * 60)
 	let intervalId = $state<ReturnType<typeof setInterval> | null>(null)
 	let notificationMessage = $state('')
@@ -249,24 +248,14 @@
 		playAlarm()
 		showCompletionNotification(completedMode)
 
-		if (mode === 'focus') {
+		if (completedMode === 'focus') {
 			mode = 'break'
 			remainingSeconds = breakMinutes * 60
-
-			if (autoContinueAfterFocus) {
-				startTimer()
-				return
-			}
-
-			isRunning = false
-			stopInterval()
 			return
 		}
 
 		mode = 'focus'
 		remainingSeconds = focusMinutes * 60
-		isRunning = false
-		stopInterval()
 	}
 
 	const tick = () => {
@@ -464,10 +453,7 @@
 					</button>
 				</div>
 
-				<label class={`flex items-center gap-3 text-sm ${activeVisual.footerText}`}>
-					<input type="checkbox" bind:checked={autoContinueAfterFocus} class={`h-4 w-4 ${activeVisual.rangeAccent}`} />
-					Auto-start break after focus ends
-				</label>
+				<p class={`text-sm ${activeVisual.footerText}`}>Timer loops continuously until you press End timer.</p>
 			</div>
 		</section>
 	</div>
